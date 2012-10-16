@@ -1,4 +1,4 @@
-(ns proofpeer.logic)
+(ns proofpeer.logic.kernel)
 
 ;; Types
 (defrecord Type [kind param])
