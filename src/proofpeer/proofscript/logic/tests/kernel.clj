@@ -1,6 +1,6 @@
-(ns proofpeer.logic.tests.kernel
+(ns proofpeer.proofscript.logic.tests.kernel
   (:use clojure.test)
-  (:use proofpeer.logic.kernel))
+  (:use proofpeer.proofscript.logic.kernel))
 
 (deftest test-ty-constructors-and-destructors
   (is (ty-set? ty-set))
