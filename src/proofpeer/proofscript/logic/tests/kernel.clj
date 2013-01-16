@@ -4,10 +4,10 @@
 
 (let [my-tyv   (mk-tyvar         'x)
       my-tyc   (mk-tyconstant    'X)
-      my-tyfun (mk-tyconstructor '->     [my-tyv my-tyv])
+      my-tyfun (mk-fun-ty        my-tyv my-tyc)
       my-var   (mk-var           0       my-tyv)
-      my-const (mk-const         0       my-tyv)
-      my-abs   (mk-abs           my-var  my-var)
+      my-const (mk-const         0       my-tyc)
+      my-abs   (mk-abs           my-var  my-const)
       my-comb  (mk-app           my-abs  my-var)]
   (do 
     (is (= (dest-var   my-var)   0))
@@ -25,4 +25,6 @@
     (is (= (dest-abs   my-var)   nil))
     (is (= (dest-abs   my-const) nil))  
     (is (= (dest-abs   my-comb)  nil))
-    (is (= (dest-abs   my-abs)   [my-var my-var]))))
+    (is (= (dest-abs   my-abs)   [my-var my-const]))
+    
+    (is (= (type-of my-comb) my-tyc))))

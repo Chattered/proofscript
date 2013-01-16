@@ -40,8 +40,8 @@
 
 (defn mk-tyconstructor
   "A constructed type."
-  [atom args]
-  [:tycons atom args])
+  [atom & args]
+  (cons :tycons (cons atom args)))
 
 (defn dest-var
   "Returns a variable's atom or nil if the term is not a variable."
@@ -59,26 +59,43 @@
   "Returns a combination's rator and rand or nil if the term is not a combination."
   [term]
   (when (= (first term) :comb)
-    [(term 1) (term 2)]))
+    (rest term)))
 
 (defn dest-abs
   "Returns an abstraction's variable and body or nil if the term is not an abstraction."
   [term]
   (when (= (first term) :abs)
-    [(term 1) (term 2)]))
+    (rest term)))
 
 (defn dest-tyconstructor
   "Returns a type's constructor and arguments in a vector, or nil if the type is not a constructed type."
   [ty]
   (when (= (first ty) :tycons)
-    (next ty)))
+    (rest ty)))
 
-(defn fun-ty [fty xty]
-  (mk-tyconstructor :-> [fty xty]))
+(defn mk-fun-ty [tyx tyy]
+  (mk-tyconstructor :-> tyx tyy))
 
 (defn dest-fun-ty
   "Returns the rator and rand types in a vector, or nil if the type is not a function type."
   [ty]
-  (if-let [tyargs (dest-tyconstructor ty)]
-    [(first tyargs)
-     (tyargs 1)]))
+  (if-let [[_ & tyargs] (dest-tyconstructor ty)]
+    tyargs))
+
+(defn type-of
+  "Returns the type of the given term. If the term cannot be consistently typed, returns nil."
+  [term]
+  (case (first term)
+    :var    (term 2)
+    :const  (term 2)
+    :comb   (let [[f     x] (rest term)
+                  [tyx tyy] (dest-fun-ty (type-of f))]
+              (when (= tyx (type-of x))
+                tyy))
+    :abs    (let [[x   bod] (rest term)
+                  tyx       (type-of x)
+                  tyy       (type-of bod)]
+              (mk-fun-ty tyx tyy))))
+
+
+                  
