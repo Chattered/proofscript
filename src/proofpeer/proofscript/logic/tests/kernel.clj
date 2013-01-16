@@ -2,26 +2,27 @@
   (:use clojure.test)
   (:use proofpeer.proofscript.logic.kernel))
 
-(deftest test-ty-constructors-and-destructors
-  (is (ty-set? ty-set))
-  (is (ty-bool? ty-bool))
-  (is (not (ty-set? ty-bool)))
-  (is (not (ty-bool? ty-set)))
-  (is (= (ty-fun? (ty-fun ty-set ty-bool)) [ty-set ty-bool]))
-  (is (not (or (ty-fun? ty-bool) (ty-fun? ty-set))))
-  (is (= (ty-var? (ty-var "a")) "a"))
-  (is (not (ty-var? ty-set))))
-
-(deftest test-ty-collect-tyvars
-  (is (= (ty-collect-tyvars ty-set) #{}))
-  (is (= (ty-collect-tyvars (ty-fun (ty-var "a") (ty-var "b"))) #{"a" "b"}))
-  (is (= (ty-collect-tyvars (ty-fun (ty-var "a") (ty-var "a"))) #{"a"})))
-
-(deftest test-ty-polymorphic
-  (is (not (ty-polymorphic? ty-bool)))
-  (is (not (ty-polymorphic? ty-set)))
-  (is (ty-polymorphic? (ty-fun (ty-fun ty-set (ty-var "a")) ty-bool))))
-
-
-
-
+(let [my-tyv   (mk-tyvar         'x)
+      my-tyc   (mk-tyconstant    'X)
+      my-tyfun (mk-tyconstructor '->     [my-tyv my-tyv])
+      my-var   (mk-var           0       my-tyv)
+      my-const (mk-const         0       my-tyv)
+      my-abs   (mk-abs           my-var  my-var)
+      my-comb  (mk-app           my-abs  my-var)]
+  (do 
+    (is (= (dest-var   my-var)   0))
+    (is (= (dest-var   my-const) nil))
+    (is (= (dest-var   my-comb)  nil))
+    (is (= (dest-var   my-abs)   nil))
+    (is (= (dest-const my-var)   nil))
+    (is (= (dest-const my-const) 0))  
+    (is (= (dest-const my-comb)  nil))
+    (is (= (dest-const my-abs)   nil))
+    (is (= (dest-comb  my-var)   nil))
+    (is (= (dest-comb  my-const) nil))  
+    (is (= (dest-comb  my-comb)  [my-abs my-var]))
+    (is (= (dest-comb  my-abs)   nil))
+    (is (= (dest-abs   my-var)   nil))
+    (is (= (dest-abs   my-const) nil))  
+    (is (= (dest-abs   my-comb)  nil))
+    (is (= (dest-abs   my-abs)   [my-var my-var]))))
