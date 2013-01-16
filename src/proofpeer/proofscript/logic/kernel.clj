@@ -47,27 +47,27 @@
   "Returns a variable's atom or nil if the term is not a variable."
   [term]
   (if (= (first term) :var)
-    (nth term 1)))
+    (term 1)))
 
 (defn dest-const
   "Returns a constant's atom or nil if the term is not a constant."
   [term]
   (when (= (first term) :const)
-    (nth term 1)))
+    (term 1)))
 
 (defn dest-comb
   "Returns a combination's rator and rand or nil if the term is not a combination."
   [term]
   (when (= (first term) :comb)
-    [(nth term 1) (nth term 2)]))
+    [(term 1) (term 2)]))
 
 (defn dest-abs
   "Returns an abstraction's variable and body or nil if the term is not an abstraction."
   [term]
   (when (= (first term) :abs)
-    [(nth term 1) (nth term 2)]))
+    [(term 1) (term 2)]))
 
-(defn dest-tycons
+(defn dest-tyconstructor
   "Returns a type's constructor and arguments in a vector, or nil if the type is not a constructed type."
   [ty]
   (when (= (first ty) :tycons)
@@ -97,3 +97,13 @@
     (is (= (dest-abs   my-const) nil))  
     (is (= (dest-abs   my-comb)  nil))
     (is (= (dest-abs   my-abs)   [my-var my-var]))))
+
+(defn fun-ty [fty xty]
+  (mk-tyconstructor :-> [fty xty]))
+
+(defn dest-fun-ty
+  "Returns the rator and rand types in a vector, or nil if the type is not a function type."
+  [ty]
+  (if-let [tyargs (dest-tyconstructor ty)]
+    [(first tyargs)
+     (tyargs 1)]))
