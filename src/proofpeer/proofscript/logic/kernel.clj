@@ -9,37 +9,37 @@
 
 ;; Typed lambda calculus.
 (defn mk-var
-  "A typed variable."
+  "Returns a typed variable."
   [atom ty]
   [:var atom ty])
 
 (defn mk-const
-  "An typed constant."
+  "Returns a typed constant."
   [atom ty]
   [:const atom ty])
 
 (defn mk-app
-  "A combination."
+  "Returns a combination."
   [f x]
   [:comb f x])
 
 (defn mk-abs
-  "An abstraction."
+  "Returns an abstraction."
   [x bod]
   [:abs x bod])
 
 (defn mk-tyvar
-  "A type variable."
+  "Returns a type variable."
   [atom]
   [:tyv atom])
 
 (defn mk-tyconstant
-  "A type constant."
+  "Returns a type constant."
   [atom]
   [:tyc atom])
 
 (defn mk-tyconstructor
-  "A constructed type."
+  "Returns a constructed type."
   [atom & args]
   (cons :tycons (cons atom args)))
 
@@ -96,6 +96,3 @@
                   tyx       (type-of x)
                   tyy       (type-of bod)]
               (mk-fun-ty tyx tyy))))
-
-
-                  
