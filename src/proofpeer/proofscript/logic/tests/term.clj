@@ -27,4 +27,5 @@
     (is (= (dest-abs   my-comb)  nil))
     (is (= (dest-abs   my-abs)   [my-var my-const]))
     
-    (is (= (type-of my-comb) my-tyc))))
+    (is (= (type-of my-comb) my-tyc))
+    (is (= (type-of (mk-app my-abs my-abs)) nil))))
