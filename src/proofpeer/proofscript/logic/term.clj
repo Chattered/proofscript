@@ -1,11 +1,11 @@
 (ns proofpeer.proofscript.logic.term
-  (:require phlegmaticprogrammer.clojure_util.core))
-(use '[clojure.test :only [is]])
+  (:use phlegmaticprogrammer.clojure_util.core))
 
-;; This is not idiomatic clojure. Since this is a kernel, we use
-;; sealed abstractions for everything other than atoms. Atoms for
-;; terms and types are drawn from an arbitrary abstract alphabet which
-;; only needs to support equality.
+;; This is not idiomatic clojure. We are using sealed abstractions for
+;; everything other than atoms, on the argument that clients are not expected
+;; to provide their own ad-hoc implementations. Atoms for terms and types are
+;; drawn from an arbitrary abstract alphabet which only needs to support
+;; equality.
 
 ;; Typed lambda calculus.
 (defn mk-var
@@ -18,8 +18,8 @@
   [atom ty]
   [:const atom ty])
 
-(defn mk-app
-  "Returns a combination."
+(defn mk-comb
+    "Returns a combination."
   [f x]
   [:comb f x])
 
@@ -32,11 +32,6 @@
   "Returns a type variable."
   [atom]
   [:tyv atom])
-
-(defn mk-tyconstant
-  "Returns a type constant."
-  [atom]
-  [:tyc atom])
 
 (defn mk-tyconstructor
   "Returns a constructed type."
@@ -92,7 +87,7 @@
                   [tyx tyy] (dest-fun-ty (type-of f))]
               (when (= tyx (type-of x))
                 tyy))
-    :abs    (let [[x   bod] (rest term)
-                  tyx       (type-of x)
-                  tyy       (type-of bod)]
-              (mk-fun-ty tyx tyy))))
+    :abs    (let [[x   bod] (rest term)]
+              (if-let [tyx   (type-of x)]
+                (if-let [tyy (type-of bod)]
+                  (mk-fun-ty tyx tyy))))))
