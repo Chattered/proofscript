@@ -9,220 +9,125 @@ type-constructors provided that all their type arguments havke kind *.
 Additionally, all types are indexed by a context, which is used to associate
 axioms and definitions with types, terms and theorems. The context is an
 arbitrary value such that types with distinct context are taken to be
-distinct. The nil context is reserved for the kernel.
+distinct.
+
+The nil context is reserved for the most logically secure parts of the
+kernel. The only type-constructors in the nil context are:
+  1) the nullary constructor for ZF sets
+  2) the polymorphic function type constructor
+The only axioms and inference rules are those for HOL + ZFC. The kernel does
+not permit any new axioms in the nil context.
+
+New axioms can be added into any other context according to whatever
+conventions are adopted by the context implementation. For instance, a context
+may wish to disallow overloaded constants and variadic type constructors.
 
 Functions with doc-strings introduced with CONTEXT are provided for clients
-providing implementations of contexts.  "
-  (:require clojure.test))
-(use '[clojure.test :only [is]])
+providing implementations of contexts."
+  )
 
-;; The user can freely move types, terms and theorems between contexts, but it
-;; is expected that restrictions on this will be imposed from outside the
-;; kernel. For instance, it might be a good idea to follow HOL Light and
-;; disallow type constructors with the same name and disallow overloaded
-;; constants.
-
+;;; Syntax
 (defrecord TypeConstr [cons context args])
 (defrecord TypeVar    [symbol])
-(defrecord Const      [symbol type])
 (defrecord Var        [symbol type])
 (defrecord Comb       [rator rand])
-(defrecord Abs        [var body])
+(defrecord Abs        [bndV body])
 
 (defn- context-of-ty
   [ty]
-  (condp (type ty)
+  (condp = (class ty)
       TypeConstr (.context ty)
       TypeVar    nil))
 
+(defn context-of-term
+  "Returns the context of a given term."
+  [term]
+  (condp = (type term)
+      Var   (context-of-ty   (.type  term))
+      Comb  (context-of-term (.rator term))
+      Abs   (context-of-term (.bndV  term))))
+
 (defn mk-ty-constr
   "Apply a type constructor in a context. All type arguments must either belong
-  to the root context -- nil -- or belong to the given same context.
+  to the root context -- nil -- or belong to the given context.
 
   Returns nil if the contexts do not match."
   [cons context & args]
-  (when (every? #(or (not %) (= % context)) args)
-    (-> TypeConstr cons context args)))
+  (when (every? #(or (not %) (= (context-of-ty %) context)) args)
+    (->TypeConstr cons context args)))
 
 (defn mk-ty-var
   "Create a type variable."
   [sym]
-  (-> TypeVar sym))
+  (->TypeVar sym))
 
-(defn fun-ty
+(defn mk-fun-ty
   "Apply the function type constructor in the root context."
-  [ty-rator ty-rand]
-  (mk-ty-constr '-> nil ty-rator ty-rand))
+  [ty-dom ty-codom]
+  (mk-ty-constr '-> nil ty-dom ty-codom))
 
+(defn dest-fun-ty
+  "Returns the rator and rand type of a function type in a vector, or nil if
+the argument is not a function type."
+  [ty]
+  (when (and (= (type ty) TypeConstr)
+             (= (.cons ty) '->))
+    (.args ty)))
+  
 (defn type-of
   [tm]
-  (condp (type tm)
-      Const (.type tm)
+  (condp = (type tm)
       Var   (.type tm)
       Comb  (-> tm .rator type-of 1)
-      Abs   (fun-ty
+      Abs   (mk-fun-ty
              (-> tm .var type-of)
              (-> tm .body type-of))))
-
-(defn mk-const
-  "CONTEXT: Construct a typed constant. Context implementations might want to
-prevent overloading before calling this function."
-  [sym type]
-  (-> Const sym type))
 
 (defn mk-var
   "Construct a typed variable."
   [sym type]
-  (-> Var sym type))
+  (->Var sym type))
 
-;; (defn mk-ty-var
-;;   "Create a type variable."
-;;   [sym]
-;;   (-> TypeVar sym))
+(defn mk-comb
+  "Construct a typed combination. Returns nil if the rator and rand types do not agree."
+  [rator rand]
+  (if-let [[dom-ty _] (dest-fun-ty (type-of rator))]
+    (when (= dom-ty (type-of rand))
+      (->Comb rator rand))))
 
-;; (defn mk-const
-;;   "CONTEXT: Create a typed constant. Context implementations might want to
-;; prevent overloading here."
-;;   [sym type]
-;;   (-> Const sym type))
+(defn mk-abs
+  "Construct a typed abstraction. Returns nil if the variable is not in the
+same context as the body."
+  [bndV body]
+  (when (= (-> bndV .type .context) (context-of-term body))
+    (->Abs bndV body)))
 
-;; (defn mk-var
-;;   "Create a typed variable."
-;;   [sym type]
-;;   (-> Var sym type))
+(defn mk-binop
+  "Given a binary operator and two arguments, returns the term denoting the image of a operation applied to those arguments."
+  [op x y]
+  (mk-comb (mk-comb op (mk-comb x)) y))
 
-;; (defn- context-of-ty
-;;   "The context of a type."
-  
+(def bool-ty
+  "The type of truth values."
+  (mk-ty-var 'bool))
 
-;; (defn context-of
-;;   "The context of a term."
-;;   [term]
-;;   (condp = (type term)
-;;     Const (.type term)
+(def foo
+   (mk-fun-ty (mk-ty-var 1) (mk-ty-var 2)))
 
-;; (def mk-fun-ty
-;;   "Contextualised function types."
-;;   [context rator-ty rand-ty]
-;;   (TypeConst '-> (or (context-of rator-ty) (context-of rand-ty))))
+;; (def eq
+;;   "Equality."
+;;   (let [eq-ty (mk-fun-ty (->TypeVar 3)
+;;                          (mk-fun-ty :bool (->TypeVar 'α)))]
+;;     (mk-var '= eq-ty)))
 
+;; (defn mk-eq
+;;   "Given x and y, returns the term x = y."
+;;   [x y]
+;;   (mk-binop 
 
-;; (defn- tyctx-of
-;;   "Determine the contextualised type of a term."
-;;   [term]
-;;   (condp = (type term)
-;;     Const (.type term)
-;;     Var   (.type var)
-;;     App   (-> rator .type .args 2)
-;;     Abs   (mk-fun-ty (context-of
+(defrecord Theorem [assumptions concl])
 
-;; (defn mk-app
-;;   "Creates an application from a rator and rand. If not well-typed, returns
-;; nil."
-;;   [rator rand]
-;;   (
-
-;; (defn context-of-type [ty]
-;;   (condp = (type ty)
-;;     ConstType (.context ty)
-;;     VarType   nil))
-
-;; (defn context-of-atom
-;;   "Returns the context of a constant or variable."
-;;   [atom]
-;;   (context-of-type (.type const)))
-
-;; (defn context-of-app
-;;   "Returns the context of an application."
-;;   [app]
-;;   (-> app .rator)
-
-;;   (defn mk-var
-;;   "Returns a typed variable."
-;;   [atom ty]
-;;   [:var atom ty])
-
-;; (defn mk-const
-;;   "Returns a typed constant."
-;;   [atom ty]
-;;   [:const atom ty])
-
-;; (defn mk-app
-;;   "Returns a combination."
-;;   [f x]
-;;   [:comb f x])
-
-;; (defn mk-abs
-;;   "Returns an abstraction."
-;;   [x bod]
-;;   [:abs x bod])
-
-;; (defn mk-tyvar
-;;   "Returns a type variable."
-;;   [atom]
-;;   [:tyv atom])
-
-;; (defn mk-tyconstant
-;;   "Returns a type constant."
-;;   [atom]
-;;   [:tyc atom])
-
-;; (defn mk-tyconstructor
-;;   "Returns a constructed type."
-;;   [atom & args]
-;;   (cons :tycons (cons atom args)))
-
-;; (defn dest-var
-;;   "Returns a variable's atom or nil if the term is not a variable."
-;;   [term]
-;;   (if (= (first term) :var)
-;;     (term 1)))
-
-;; (defn dest-const
-;;   "Returns a constant's atom or nil if the term is not a constant."
-;;   [term]
-;;   (when (= (first term) :const)
-;;     (term 1)))
-
-;; (defn dest-comb
-;;   "Returns a combination's rator and rand or nil if the term is not a combination."
-;;   [term]
-;;   (when (= (first term) :comb)
-;;     (rest term)))
-
-;; (defn dest-abs
-;;   "Returns an abstraction's variable and body or nil if the term is not an abstraction."
-;;   [term]
-;;   (when (= (first term) :abs)
-;;     (rest term)))
-
-;; (defn dest-tyconstructor
-;;   "Returns a type's constructor and arguments in a vector, or nil if the type is not a constructed type."
-;;   [ty]
-;;   (when (= (first ty) :tycons)
-;;     (rest ty)))
-
-;; (defn mk-fun-ty [tyx tyy]
-;;   (mk-tyconstructor :-> tyx tyy))
-
-;; (defn dest-fun-ty
-;;   "Returns the rator and rand types in a vector, or nil if the type is not a function type."
-;;   [ty]
-;;   (if-let [[_ & tyargs] (dest-tyconstructor ty)]
-;;     tyargs))
-
-;; (defn type-of
-;;   "Returns the type of the given term. If the term cannot be consistently typed, returns nil."
-;;   [term]
-;;   (case (first term)
-;;     :var    (term 2)
-;;     :const  (term 2)
-;;     :comb   (let [[f     x] (rest term)
-;;                   [tyx tyy] (dest-fun-ty (type-of f))]
-;;               (when (= tyx (type-of x))
-;;                 tyy))
-;;     :abs    (let [[x   bod] (rest term)
-;;                   tyx       (type-of x)
-;;                   tyy       (type-of bod)]
-;;               (mk-fun-ty tyx tyy))))
-
+;; (defn refl [x]
+;;   "Given x, returns |- x = x"
+;;   [x]
+;;   (mk-
