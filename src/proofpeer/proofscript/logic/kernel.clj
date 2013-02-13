@@ -1,29 +1,17 @@
-;;;; To ensure logical soundness, only access the data-structures in this
-;;;; kernel via the exported functions.
-
 (ns proofpeer.proofscript.logic.kernel
-  "A kernel for the simply typed lambda calculus together with ZFC set
-theory. Formally: we allow terms to be rank-1 polymorphic and we allow
-type-constructors provided that all their type arguments have kind *.
+  "The proof peer kernel. To guarantee logical soundness, all data should be
+  constructed from the exported functions.
 
-Additionally, all types are indexed by a context, which is used to associate
-axioms and definitions with types, terms and theorems. The context is an
-arbitrary value such that types with distinct context are taken to be
-distinct.
+   The basic syntax of the kernel supports type variables, type constructors,
+variables, constants, combinations and abstractions. However, the arguments to
+all type constructors must have kind *. Additionally, all types are indexed by
+a context, which is used to associate axioms and definitions with types, terms
+and theorems. The context is an arbitrary value such that types with distinct
+context are taken to be distinct.
 
 All contexts are greater than the nil context and otherwise incomparable. See
-the documentation for mk-ty-constr.
+the documentation for mk-ty-constr."
 
-The nil context is reserved for the most logically secure parts of the
-kernel. The only type-constructors in the nil context are:
-  1) the nullary constructor for ZF sets
-  2) the polymorphic function type constructor
-The only axioms and inference rules are those for HOL + ZFC. The kernel does
-not permit any new axioms in the nil context.
-
-New axioms can be added into any other context according to whatever
-conventions are adopted by the context implementation. For instance, a context
-may wish to disallow overloaded constants and variadic type constructors."
   (:use phlegmaticprogrammer.clojure_util.core)
   )
 
@@ -39,6 +27,7 @@ may wish to disallow overloaded constants and variadic type constructors."
   [term]
   (condp = (first term)
       :Var   (let [[_ ty] (rest term)] (context-of-ty ty))
+      :Const (let [[_ ty] (rest term)] (context-of-ty ty))
       :Comb  (let [[rator _] (rest term)] (context-of-term rator))
       :Abs   (let [[bndV _] (rest term)] (context-of-term bndV))))
 
@@ -84,6 +73,7 @@ the argument is not a function type."
   [tm]
   (condp = (first tm)
       :Var   (let [[_ ty] (rest tm)] ty)
+      :Const (let [[_ ty] (rest tm)] ty)
       :Comb  (let [[rator rand] (rest tm)] (second (dest-fun-ty (type-of rator))))
       :Abs   (let [[v bod] (rest tm)]
                (mk-fun-ty (type-of v) (type-of bod)))))
@@ -92,6 +82,11 @@ the argument is not a function type."
   "Construct a typed variable."
   [sym type]
   [:Var sym type])
+
+(defn mk-const
+  "Construct a typed constant."
+  [sym type]
+  [:Const sym type])
 
 (defn mk-comb
   "Construct a typed combination. Returns nil if the rator and rand types do not agree."
