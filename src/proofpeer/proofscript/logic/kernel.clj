@@ -57,7 +57,8 @@ contexts. Returns nil if no such maximum exists."
                             [nil false])
                           [(or maxC cx) true])))
                 [context true] args)]
-    (if valid [:TypeConstr cons maxContext args])))
+    (when valid
+      [:TypeConstr cons maxContext args])))
 
 (defn mk-ty-var
   "Create a type variable."
@@ -65,7 +66,7 @@ contexts. Returns nil if no such maximum exists."
   [:TypeVar sym])
 
 (defn mk-fun-ty
-  "Apply the function type constructor in the root context."
+  "Apply the function type constructor, which lives in the nil context."
   [ty-dom ty-codom]
   (mk-ty-constr '-> nil ty-dom ty-codom))
 
@@ -99,6 +100,12 @@ the argument is not a function type."
     (when (= dom-ty (type-of rand))
       [:Comb rator rand])))
 
+(defn dest-comb
+  "Return the rator and rand of a term. Returns nil if not a combination."
+  [tm]
+  (when (= :Comb (first tm))
+    (rest tm)))
+
 (defn mk-abs
   "Construct a typed abstraction. Returns nil if the variable is not in the
 same context as the body."
@@ -110,34 +117,55 @@ same context as the body."
       (runtime-error "First argument to mk-abs must be a term variable."))))
 
 (defn mk-binop
-  "Given a binary operator and two arguments, returns the term denoting the image of a operation applied to those arguments."
+  "Given a binary operator and two arguments, returns the application of the operator to those arguments. Returns nil if the types are incompatible."
   [op x y]
   (mk-comb (mk-comb op x) y))
+
+(defn dest-binop
+  "Given an application of an operator to two terms, returns the operator and two arguments.."
+  [tm]
+  (if-let [[lrator rand] (dest-comb tm)]
+    (if-let [[op land] (dest-comb lrator)]
+      [op land rand])))
 
 (def alpha-ty
   ^{:private true}
   (mk-ty-var 'α))
 
 (def bool-ty
+  "The type of booleans, which live in the nil context."
   (mk-ty-constr 'bool nil))
 
-(def eq-term
-  "Equality"
-  (mk-var '= (mk-fun-ty alpha-ty (mk-fun-ty alpha-ty bool-ty))))
-
-(def foo
-  (mk-fun-ty alpha-ty bool-ty))
+(defn eq-term
+  "Equality on the type ty, living in the nil context."
+  [ty]
+  (mk-var '= (mk-fun-ty ty (mk-fun-ty ty bool-ty))))
 
 (defn mk-eq
   "Given x and y, returns the term x = y."
   [x y]
-  (mk-binop eq-term x y))
+  (let [x-ty (type-of x)]
+    (mk-binop (eq-term x-ty) x y)))
 
-(def a-ty
-  (mk-ty-constr     :At 1))
+(defn dest-eq
+  "Given an equation, returns the left and right hand side."
+  [tm]
+  (if-let [[op land rand] (dest-binop tm)]
+    (when (= :Var (first op))
+      (let [[sym ty] (rest op)]
+        (when (= '= sym)
+          (if-let [[a-ty eqa-ty] (dest-fun-ty ty)]
+            (if-let [[b-ty bool-ty'] (dest-fun-ty eqa-ty)]
+              (when (and (= a-ty b-ty)
+                         (= bool-ty bool-ty'))
+                [land rand]))))))))
 
-(def b-ty
-  (mk-ty-constr     :Bt 1))
+(defn- mk-theorem
+  "For the kernel's eyes only!"
+  [asms concl]
+  [:Theorem asms concl])
 
-(def f-ty
-  (mk-fun-ty        a-ty b-ty))
+(defn refl
+  "Given x, returns ⊦ x = x"
+  [x]
+  (mk-theorem [] (mk-eq x x)))

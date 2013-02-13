@@ -16,18 +16,20 @@
         g-ty      (mk-fun-ty        f-ty C-ty)
         h-ty      (mk-fun-ty        E-ty f-ty)
 
-        A         (mk-var           :A A-ty)
-        B         (mk-var           :B B-ty)
-        C         (mk-var           :C C-ty)
-        D         (mk-var           :D D-ty)
-        E         (mk-var           :E E-ty)
-        F         (mk-var           :F F-ty)
+        A         (mk-var           :A  A-ty)
+        B         (mk-var           :B  B-ty)
+        C         (mk-var           :C  C-ty)
+        D         (mk-var           :D  D-ty)
+        E         (mk-var           :E  E-ty)
+        F         (mk-var           :F  F-ty)
+        A'        (mk-var           :A' A-ty)
 
         f         (mk-var           :f f-ty)
         g         (mk-var           :g g-ty)
         h         (mk-var           :h h-ty)
 
-        fA        (mk-comb          f A)]
+        fA        (mk-comb          f A)
+        eqAA'     (mk-eq            A A')]
     (do
       ; Context failure
       (is (= nil (mk-ty-constr :foo nil A-ty D-ty)))
@@ -36,6 +38,8 @@
 
       ; Type failures
       (is (= nil (mk-abs  E A)))
-      (is (= nil (mk-comb h B))))))
+      (is (= nil (mk-comb h B)))
 
-      ; Constructions
+      ; Destructions
+      (is (= [(eq-term A-ty) A A'] (dest-binop eqAA'))))))
+;      (is (= [A A'] (dest-eq eqAA'))))))
