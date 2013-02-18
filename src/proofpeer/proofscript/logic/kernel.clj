@@ -117,50 +117,13 @@ same context as the body."
   (mk-comb (mk-comb op x) y))
 
 (defn dest-binop
-  "Given an application of an operator to two terms, returns the operator and two arguments.."
+  "Given an application of an operator to two terms, returns the operator and two arguments."
   [tm]
   (if-let [[lrator rand] (dest-comb tm)]
     (if-let [[op land] (dest-comb lrator)]
       [op land rand])))
 
-(def alpha-ty
-  ^{:private true}
-  (mk-ty-var 'α))
-
-(def bool-ty
-  "The type of booleans, which live in the nil context."
-  (mk-ty-constr 'bool nil))
-
-(defn eq-term
-  "Equality on the type ty, living in the nil context."
-  [ty]
-  (mk-var '= (mk-fun-ty ty (mk-fun-ty ty bool-ty))))
-
-(defn mk-eq
-  "Given x and y, returns the term x = y."
-  [x y]
-  (let [x-ty (type-of x)]
-    (mk-binop (eq-term x-ty) x y)))
-
-(defn dest-eq
-  "Given an equation, returns the left and right hand side."
-  [tm]
-  (if-let [[op land rand] (dest-binop tm)]
-    (when (= :Var (first op))
-      (let [[sym ty] (rest op)]
-        (when (= '= sym)
-          (if-let [[a-ty eqa-ty] (dest-fun-ty ty)]
-            (if-let [[b-ty bool-ty'] (dest-fun-ty eqa-ty)]
-              (when (and (= a-ty b-ty)
-                         (= bool-ty bool-ty'))
-                [land rand]))))))))
-
-(defn- mk-theorem
-  "For the kernel's eyes only!"
+(defn mk-theorem
+  "For the inference rules only!"
   [asms concl]
   [:Theorem asms concl])
-
-(defn refl
-  "Given x, returns ⊦ x = x"
-  [x]
-  (mk-theorem [] (mk-eq x x)))

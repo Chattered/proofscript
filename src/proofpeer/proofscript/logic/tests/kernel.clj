@@ -1,6 +1,7 @@
 (ns proofpeer.proofscript.logic.tests.kernel
   (:use clojure.test)
-  (:use proofpeer.proofscript.logic.kernel))
+  (:use proofpeer.proofscript.logic.kernel)
+  (:use proofpeer.proofscript.logic.hol))  
 
 (deftest term-tests
   (let [contextA  :a
