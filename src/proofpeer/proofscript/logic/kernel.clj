@@ -1,16 +1,19 @@
-(ns proofpeer.proofscript.logic.kernel
-  "The proof peer kernel. To guarantee logical soundness, all data should be
-  constructed from the exported functions.
+(ns proofpeer.proofscript.logic.kernel "The proof peer kernel. To guarantee
+  logical soundness, all data should be constructed from the exported
+  functions. These functions, and all derived functions, make for a *very* thin
+  abstraction over the underlying data. Standing working hypothesis is that
+  that all circumventions of the standard interface entail a reformat of the
+  universe.
 
-   The basic syntax of the kernel supports type variables, type constructors,
-variables, constants, combinations and abstractions. However, the arguments to
-all type constructors must have kind *. Additionally, all types are indexed by
-a context, which is used to associate axioms and definitions with types, terms
-and theorems. The context is an arbitrary value such that types with distinct
-context are taken to be distinct.
+  The basic syntax of the kernel supports type variables, type constructors,
+  variables, constants, combinations and abstractions. However, the arguments
+  to all type constructors must have kind *. Additionally, all types are
+  indexed by a context, which is used to associate axioms and definitions with
+  types, terms and theorems. The context is an arbitrary value such that types
+  with distinct context are taken to be distinct.
 
-All contexts are greater than the nil context and otherwise incomparable. See
-the documentation for mk-ty-constr."
+  All contexts are greater than the nil context and otherwise incomparable. See
+  the documentation for mk-ty-constr."
 
   (:use phlegmaticprogrammer.clojure_util.core)
   )
@@ -124,6 +127,11 @@ same context as the body."
       [op land rand])))
 
 (defn mk-theorem
-  "For the inference rules only!"
+  "Unless you are implementing an inference rule, keep your hands off."
   [asms concl]
   [:Theorem asms concl])
+
+(defn dest-theorem
+  "Returns the assumptions and conclusion of a theorem."
+  [thm]
+  [(thm 1) (thm 2)])
