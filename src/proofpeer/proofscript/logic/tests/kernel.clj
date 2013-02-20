@@ -1,7 +1,6 @@
 (ns proofpeer.proofscript.logic.tests.kernel
   (:use clojure.test)
-  (:use proofpeer.proofscript.logic.kernel)
-  (:use proofpeer.proofscript.logic.hol))  
+  (:use proofpeer.proofscript.logic.kernel))
 
 (def contextA  5)
 (def A-ty      (mk-ty-constr     :At :hol))
