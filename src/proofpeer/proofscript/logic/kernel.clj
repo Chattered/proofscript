@@ -41,12 +41,12 @@ contexts. Returns nil if no such maximum exists."
   [cons context & args]
   (let [[maxContext valid]
         (reduce #(let [[maxC valid] %1
-                       cx           (context-of-ty %2)] 
+                        cx          (context-of-ty %2)] 
                    (and valid
                         (if (and maxC cx)
                           (if (= maxC cx)
                             [maxC true]
-                            [nil false])
+                            [nil  false])
                           [(or maxC cx) true])))
                 [context true] args)]
     (when valid

@@ -3,44 +3,45 @@
   (:use proofpeer.proofscript.logic.kernel)
   (:use proofpeer.proofscript.logic.hol))  
 
-(deftest term-tests
-  (let [contextA  :a
-        contextB  5
-        A-ty      (mk-ty-constr     :At contextA)
-        B-ty      (mk-ty-constr     :Bt contextA)
-        C-ty      (mk-ty-constr     :Ct contextA)
-        D-ty      (mk-ty-constr     :Dt contextB)
-        E-ty      (mk-ty-constr     :Et nil)
-        F-ty      (mk-ty-constr     :Ft nil)
+(def contextA  5)
+(def A-ty      (mk-ty-constr     :At :hol))
+(def B-ty      (mk-ty-constr     :Bt :hol))
+(def C-ty      (mk-ty-constr     :Ct :hol))
+(def D-ty      (mk-ty-constr     :At contextA))
+(def E-ty      (mk-ty-constr     :Et nil))
+(def F-ty      (mk-ty-constr     :Ft nil))
 
-        f-ty      (mk-fun-ty        A-ty B-ty)
-        g-ty      (mk-fun-ty        f-ty C-ty)
-        h-ty      (mk-fun-ty        E-ty f-ty)
+(def f-ty      (mk-fun-ty        A-ty B-ty))
+(def g-ty      (mk-fun-ty        f-ty C-ty))
+(def h-ty      (mk-fun-ty        E-ty f-ty))
 
-        A         (mk-var           :A  A-ty)
-        B         (mk-var           :B  B-ty)
-        C         (mk-var           :C  C-ty)
-        D         (mk-var           :D  D-ty)
-        E         (mk-var           :E  E-ty)
-        F         (mk-var           :F  F-ty)
-        A'        (mk-var           :A' A-ty)
+(def A         (mk-var           :A  A-ty))
+(def B         (mk-var           :B  B-ty))
+(def C         (mk-var           :C  C-ty))
+(def D         (mk-var           :D  D-ty))
+(def E         (mk-var           :E  E-ty))
+(def F         (mk-var           :F  F-ty))
+(def A'        (mk-var           :A' A-ty))
 
-        f         (mk-var           :f f-ty)
-        g         (mk-var           :g g-ty)
-        h         (mk-var           :h h-ty)
+(def f         (mk-var           :f f-ty))
+(def g         (mk-var           :g g-ty))
+(def h         (mk-var           :h h-ty))
 
-        fA        (mk-comb          f A)
-        eqAA'     (mk-eq            A A')]
-    (do
-      ; Context failure
-      (is (= nil (mk-ty-constr :foo nil A-ty D-ty)))
-      (is (= nil (mk-ty-constr :foo A-ty D-ty)))
-      (is (= nil (mk-fun-ty A-ty D-ty)))
+(def fA        (mk-comb          f A))
 
-      ; Type failures
-      (is (= nil (mk-abs  E A)))
-      (is (= nil (mk-comb h B)))
+(def eqAA'     (mk-eq            A A'))
 
-      ; Destructions
-      (is (= [(eq-term A-ty) A A'] (dest-binop eqAA'))))))
-;      (is (= [A A'] (dest-eq eqAA'))))))
+(deftest term-test
+  ;; Context failure
+  (is (= nil (mk-ty-constr :foo nil A-ty D-ty)))
+  (is (= nil (mk-ty-constr :foo A-ty D-ty)))
+  (is (= nil (mk-fun-ty A-ty D-ty)))
+  
+  ;; Type failures
+  (is (= nil (mk-abs  E A)))
+  (is (= nil (mk-comb h B)))
+
+  ;; Destructions
+  (is (= [(eq-term A-ty) A A'] (dest-binop eqAA')))
+  (is (= [A A'] (dest-eq eqAA')))
+  (is (= [A A] (dest-eq (second (dest-theorem (REFL A)))))))
