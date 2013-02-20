@@ -28,9 +28,15 @@
           ~body
           (cond-let ~@rest)))))
 
+(defn is-term?
+  "Returns true if tm is a term."
+  [tm]
+  #{:Var :Const :Comb :Abs} (first tm))
+
 (defn dest-var
   "Returns [v ty] for a variable and nil for any other term."
   [term]
+  (assert is-term? term)
   (let [[tag name ty] term]
     (when (= tag :Var)
       [name ty])))
@@ -38,6 +44,7 @@
 (defn dest-const
   "Returns [c ty] for a constant and nil for any other term."
   [term]
+  (assert is-term? term)
   (let [[tag name ty] term]
     (when (= tag :Const)
       [name ty])))
@@ -45,6 +52,7 @@
 (defn dest-comb
   "Returns [rator rand] for a combination and nil for any other term."
   [term]
+  (assert is-term? term)
   (let [[tag rator rand] term]
     (when (= tag :Comb)
       [rator rand])))
@@ -52,13 +60,20 @@
 (defn dest-abs
   "Returns [bound-var body] for an abstraction and nil for any other term."
   [term]
+  (assert is-term? term)
   (let [[tag bound-var body] term]
     (when (= tag :Abs)
       [bound-var body])))
 
+(defn is-type?
+  "Returns true if ty is a type."
+  [ty]
+  (#{:TypeVar :TypeConstr} (first ty)))
+
 (defn dest-ty-var
   "Returns the name of a type variable and nil for a value of a type constructor."
   [ty]
+  (assert (is-type? ty))
   (let [[tag name] ty]
     (when (= tag :TypeVar)
       name)))
@@ -66,12 +81,15 @@
 (defn dest-ty-constr
   "Returns [constr context arg1 arg2 ... argn] for a value of a type constructor."
   [ty]
+  (assert (is-type? ty))
   (let [[tag & thety] ty]
     (when (= tag :TypeConstr)
       thety)))
 
 (defn context-of-ty
+  "Returns the context of a type."
   [ty]
+  (assert (is-type? ty))
   (cond-let
    [[v ty] (dest-ty-var ty) nil]
    [[_ context] (dest-ty-constr ty) context]))
@@ -105,16 +123,16 @@ contexts. Returns nil if no such maximum exists."
   (mk-ty-constr '-> nil ty-dom ty-codom))
 
 (defn dest-fun-ty
-  "Returns the rator and rand type of a function type in a vector, or nil if
+  "Returns the rator type and rand type of a function type in a vector, or nil if
 the argument is not a function type."
   [ty]
-  (if-let [[tag cons context args] ty]
-    (when (and (= tag :TypeConstr)
-               (= cons '->))
+  (if-let [[cons context args] (dest-ty-constr ty)]
+    (when (= cons '->)
       (if (= (count args) 2)
         args))))
   
 (defn type-of
+  "Returns the type of a term."
   [tm]
   (cond-let
    [[_ ty] (dest-var tm) ty]
@@ -125,11 +143,13 @@ the argument is not a function type."
 (defn mk-var
   "Construct a typed variable."
   [sym type]
+  (assert is-type? type)
   [:Var sym type])
 
 (defn mk-const
   "Construct a typed constant."
   [sym type]
+  (assert is-type? type)
   [:Const sym type])
 
 (defn mk-comb
@@ -143,11 +163,9 @@ the argument is not a function type."
   "Construct a typed abstraction. Returns nil if the variable is not in the
 same context as the body."
   [bndV body]
-  (let [[tag sym ty] bndV]
-    (if (= tag :Var)
-      (when (= (context-of-ty ty) (context-of-ty (type-of body)))
-        [:Abs bndV body])
-      (runtime-error "First argument to mk-abs must be a term variable."))))
+  (let [[sym ty] (dest-var bndV)]
+    (when (= (context-of-ty ty) (context-of-ty (type-of body)))
+      [:Abs bndV body])))
 
 (defn mk-binop
   "Given a binary operator and two arguments, returns the application of the operator to those arguments. Returns nil if the types are incompatible."
@@ -160,10 +178,6 @@ same context as the body."
   (if-let [[lrator rand] (dest-comb tm)]
     (if-let [[op land] (dest-comb lrator)]
       [op land rand])))
-
-(def alpha-ty
-  ^{:private true}
-  (mk-ty-var 'α))
 
 (def bool-ty
   "The type of booleans, which live in the HOL context."
